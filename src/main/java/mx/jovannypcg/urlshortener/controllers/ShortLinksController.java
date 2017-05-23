@@ -53,6 +53,11 @@ public class ShortLinksController {
         return shortLinkRepository.save(newShortLink);
     }
 
+    /**
+     * Retrieves the whole set of short_link records.
+     *
+     * @return List of records found in database.
+     */
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.GET)
     public List<ShortLink> getShortLinks() {
         List<ShortLink> links = new ArrayList<>();
@@ -61,6 +66,12 @@ public class ShortLinksController {
         return links;
     }
 
+    /**
+     * Returns the destination for the given <code>slug</code>.
+     *
+     * @param slug Slug to be translated.
+     * @return ShortLink which has the destination in JSON format.
+     */
     @RequestMapping(value = "/{slug}", method = RequestMethod.GET)
     public ShortLink getDestinationFrom(@PathVariable String slug) {
         int destinationId = Base62.decode(slug);
