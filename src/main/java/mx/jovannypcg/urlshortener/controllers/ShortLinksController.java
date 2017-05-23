@@ -21,7 +21,7 @@ import java.io.IOException;
  */
 @RestController
 @RequestMapping("/shortlinks")
-public class ShortLinkController {
+public class ShortLinksController {
     @Autowired
     ShortLinkRepository shortLinkRepository;
 
