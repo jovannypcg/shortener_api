@@ -2,6 +2,7 @@ package mx.jovannypcg.urlshortener.controllers;
 
 import mx.jovannypcg.urlshortener.dao.ShortLinkRepository;
 import mx.jovannypcg.urlshortener.exceptions.DestinationAlreadyExistsException;
+import mx.jovannypcg.urlshortener.exceptions.DestinationNotFoundException;
 import mx.jovannypcg.urlshortener.model.ShortLink;
 import mx.jovannypcg.urlshortener.model.ShortLinkRequest;
 import mx.jovannypcg.urlshortener.util.Base62;
@@ -20,7 +21,6 @@ import java.io.IOException;
  *          jovannypcg@yahoo.com
  */
 @RestController
-@RequestMapping("/shortlinks")
 public class ShortLinksController {
     @Autowired
     ShortLinkRepository shortLinkRepository;
@@ -31,7 +31,7 @@ public class ShortLinksController {
      * @param request JSON request that includes the <code>destination</code> URL.
      * @return The created ShortLink in JSON format.
      */
-    @RequestMapping(value = "/", method = RequestMethod.POST)
+    @RequestMapping(value = "/shortlinks", method = RequestMethod.POST)
     public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
         int lastIdInserted = (int) shortLinkRepository.count();
 
@@ -42,6 +42,19 @@ public class ShortLinksController {
         newShortLink.setSlug(Base62.encode(lastIdInserted  + 1));
 
         return shortLinkRepository.save(newShortLink);
+    }
+
+    @RequestMapping(value = "/{slug}")
+    public ShortLink getDestinationFrom(@PathVariable String slug) {
+        int destinationId = Base62.decode(slug);
+
+        ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
+
+        if (retrievedShortLink == null) {
+            throw new DestinationNotFoundException(slug);
+        }
+
+        return retrievedShortLink;
     }
 
     /**
@@ -59,5 +72,10 @@ public class ShortLinksController {
     @ExceptionHandler(DestinationAlreadyExistsException.class)
     void handleDestinationAlreadyExistsException(HttpServletResponse response) throws IOException {
         response.sendError(HttpStatus.CONFLICT.value());
+    }
+
+    @ExceptionHandler(DestinationNotFoundException.class)
+    void handleDestinationNotFoundException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.NOT_FOUND.value());
     }
 }
