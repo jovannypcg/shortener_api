@@ -54,5 +54,68 @@ public class Base62Tests {
                 Base62.encode(base10ToBeConverted));
     }
 
+    @Test
+    public void containsValidCharactersShouldBeTrue() {
+        String base62ToTest = "26ChbY";
 
+        Assert.assertTrue(Base62.containsValidCharacters(base62ToTest));
+    }
+
+    @Test
+    public void containsValidCharactersShouldBeFalse() {
+        String base62ToTest = "26ChbY[";
+
+        Assert.assertFalse(Base62.containsValidCharacters(base62ToTest));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void decodeShouldThrowIllegalArgumentException() {
+        String invalidBase62String = "26ChbY[";
+        Base62.decode(invalidBase62String);
+    }
+
+    @Test
+    public void decodeShouldRunF() {
+        String base62ToBeDecoded = "F";
+        int expectedResult = 15;
+
+        Assert.assertEquals(Base62.decode(base62ToBeDecoded),
+                expectedResult);
+    }
+
+    @Test
+    public void decodeShouldRun2k() {
+        String base62ToBeDecoded = "2k";
+        int expectedResult = 170;
+
+        Assert.assertEquals(Base62.decode(base62ToBeDecoded),
+                expectedResult);
+    }
+
+    @Test
+    public void decodeShouldRunWV() {
+        String base62ToBeDecoded = "WV";
+        int expectedResult = 2015;
+
+        Assert.assertEquals(Base62.decode(base62ToBeDecoded),
+                expectedResult);
+    }
+
+    @Test
+    public void decodeShouldRunW8l() {
+        String base62ToBeDecoded = "W8l";
+        int expectedResult = 123551;
+
+        Assert.assertEquals(Base62.decode(base62ToBeDecoded),
+                expectedResult);
+    }
+
+    @Test
+    public void decodeShouldRun26ChbY() {
+        String base62ToBeDecoded = "26ChbY";
+        int expectedResult = 1923951236;
+
+        Assert.assertEquals(Base62.decode(base62ToBeDecoded),
+                expectedResult);
+    }
 }
