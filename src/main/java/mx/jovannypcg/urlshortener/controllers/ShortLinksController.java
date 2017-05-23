@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Contains the actions to deal with short links.
@@ -27,15 +30,21 @@ public class ShortLinksController {
 
     /**
      * Creates a new short link.
+     * If the destination in <code>request</code> is already stored in database, it is
+     * not created another record. Instead, the existing record is retrieved and returned.
      *
      * @param request JSON request that includes the <code>destination</code> URL.
      * @return The created ShortLink in JSON format.
      */
-    @RequestMapping(value = "/shortlinks", method = RequestMethod.POST)
+    @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.POST)
     public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
         int lastIdInserted = (int) shortLinkRepository.count();
 
-        validateDestination(request.getDestination());
+        Optional<ShortLink> existingDestination = shortLinkRepository.findByDestination(request.getDestination());
+
+        if (existingDestination.isPresent()) {
+            return existingDestination.get();
+        }
 
         ShortLink newShortLink = new ShortLink();
         newShortLink.setDestination(request.getDestination());
@@ -44,7 +53,15 @@ public class ShortLinksController {
         return shortLinkRepository.save(newShortLink);
     }
 
-    @RequestMapping(value = "/{slug}")
+    @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.GET)
+    public List<ShortLink> getShortLinks() {
+        List<ShortLink> links = new ArrayList<>();
+
+        shortLinkRepository.findAll().forEach(links::add);
+        return links;
+    }
+
+    @RequestMapping(value = "/{slug}", method = RequestMethod.GET)
     public ShortLink getDestinationFrom(@PathVariable String slug) {
         int destinationId = Base62.decode(slug);
 
