@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 /**
  * Contains the actions to deal with short links.
@@ -26,6 +27,8 @@ import java.util.Optional;
  */
 @RestController
 public class ShortLinksController {
+    Logger logger = Logger.getLogger(ShortLink.class.toString());
+
     @Autowired
     ShortLinkRepository shortLinkRepository;
 
@@ -39,21 +42,28 @@ public class ShortLinksController {
      */
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.POST)
     public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
+        logger.info("Starting request POST /v1/shortlinks");
+
         int lastInsertedId = 0;
 
         if (shortLinkRepository.findFirstByOrderByIdDesc() != null) {
              lastInsertedId = shortLinkRepository.findFirstByOrderByIdDesc().getId();
         }
 
-        Optional<ShortLink> existingDestination = shortLinkRepository.findByDestination(request.getDestination());
+        Optional<ShortLink> existingShortLink = shortLinkRepository.findByDestination(request.getDestination());
 
-        if (existingDestination.isPresent()) {
-            return existingDestination.get();
+        if (existingShortLink.isPresent()) {
+            logger.info("Existing short link retrieved: " + existingShortLink.get().toString());
+            logger.info("Finishing request POST /v1/shortlinks");
+            return existingShortLink.get();
         }
 
         ShortLink newShortLink = new ShortLink();
         newShortLink.setDestination(request.getDestination());
         newShortLink.setSlug(Base62.encode(lastInsertedId  + 1));
+
+        logger.info("ShortLink created: " + newShortLink.toString());
+        logger.info("Finishing request POST /v1/shortlinks");
 
         return shortLinkRepository.save(newShortLink);
     }
@@ -65,9 +75,12 @@ public class ShortLinksController {
      */
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.GET)
     public List<ShortLink> getShortLinks() {
+        logger.info("Starting request GET /v1/shortlinks");
         List<ShortLink> links = new ArrayList<>();
 
         shortLinkRepository.findAll().forEach(links::add);
+
+        logger.info("Finishing request GET /v1/shortlinks");
         return links;
     }
 
@@ -79,6 +92,8 @@ public class ShortLinksController {
      */
     @RequestMapping(value = "/v1/shortlinks/{slug}", method = RequestMethod.GET)
     public ShortLink getShortLinkDetails(@PathVariable String slug) {
+        logger.info("Starting request GET /v1/shortlinks/" + slug);
+
         int destinationId = Base62.decode(slug);
 
         ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
@@ -87,6 +102,8 @@ public class ShortLinksController {
             throw new DestinationNotFoundException(slug);
         }
 
+        logger.info("Short link retrieved: " + retrievedShortLink.toString());
+        logger.info("Finishing request GET /v1/shortlinks/" + slug);
         return retrievedShortLink;
     }
 
@@ -98,6 +115,8 @@ public class ShortLinksController {
      */
     @RequestMapping(value = "/{slug}", method = RequestMethod.GET)
     public RedirectView redirectFrom(@PathVariable String slug) {
+        logger.info("Starting request GET /" + slug);
+
         int destinationId = Base62.decode(slug);
 
         ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
@@ -106,19 +125,9 @@ public class ShortLinksController {
             throw new DestinationNotFoundException(slug);
         }
 
+        logger.info("Redirecting to: " + retrievedShortLink.getDestination());
+        logger.info("Finishing request GET /" + slug);
         return new RedirectView(retrievedShortLink.getDestination());
-    }
-
-    /**
-     * Validates the given destination does not exist in database.
-     * If it exists, a <code>DestinationAlreadyExistsException</code> is thrown.
-     *
-     * @param destination Destination to validate.
-     */
-    private void validateDestination(String destination) {
-        if (shortLinkRepository.findByDestination(destination).isPresent()) {
-            throw new DestinationAlreadyExistsException(destination);
-        }
     }
 
     @ExceptionHandler(DestinationAlreadyExistsException.class)
