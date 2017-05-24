@@ -9,6 +9,7 @@ import mx.jovannypcg.urlshortener.util.Base62;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -67,13 +68,13 @@ public class ShortLinksController {
     }
 
     /**
-     * Returns the destination for the given <code>slug</code>.
+     * Returns the specific ShortLink entity for the given <code>slug</code>.
      *
      * @param slug Slug to be translated.
      * @return ShortLink which has the destination in JSON format.
      */
     @RequestMapping(value = "/v1/{slug}", method = RequestMethod.GET)
-    public ShortLink getDestinationFrom(@PathVariable String slug) {
+    public ShortLink getShortLinkDetails(@PathVariable String slug) {
         int destinationId = Base62.decode(slug);
 
         ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
@@ -83,6 +84,25 @@ public class ShortLinksController {
         }
 
         return retrievedShortLink;
+    }
+
+    /**
+     * Retrieves the destination based on the given slug and redirects to it.
+     *
+     * @param slug Slug to retrieve the destination.
+     * @return RedirectView to the destination.
+     */
+    @RequestMapping(value = "/{slug}", method = RequestMethod.GET)
+    public RedirectView redirectFrom(@PathVariable String slug) {
+        int destinationId = Base62.decode(slug);
+
+        ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
+
+        if (retrievedShortLink == null) {
+            throw new DestinationNotFoundException(slug);
+        }
+
+        return new RedirectView(retrievedShortLink.getDestination());
     }
 
     /**
