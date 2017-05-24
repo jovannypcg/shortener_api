@@ -19,10 +19,17 @@ import java.util.Optional;
  */
 public interface ShortLinkRepository extends CrudRepository<ShortLink, Integer> {
     /**
-     * Retrieved a short link querying by its <code>destination</code>.
+     * Retrieves a short link querying by its <code>destination</code>.
      *
      * @param destination Destination to look for.
      * @return Optional object which might contain a short link if found.
      */
     Optional<ShortLink> findByDestination(String destination);
+
+    /**
+     * Retrieves the short link with the latest inserted id.
+     *
+     * @return Short link with the latest inserted id.
+     */
+    ShortLink findFirstByOrderByIdDesc();
 }

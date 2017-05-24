@@ -39,7 +39,11 @@ public class ShortLinksController {
      */
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.POST)
     public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
-        int lastIdInserted = (int) shortLinkRepository.count();
+        int lastInsertedId = 0;
+
+        if (shortLinkRepository.findFirstByOrderByIdDesc() != null) {
+             lastInsertedId = shortLinkRepository.findFirstByOrderByIdDesc().getId();
+        }
 
         Optional<ShortLink> existingDestination = shortLinkRepository.findByDestination(request.getDestination());
 
@@ -49,7 +53,7 @@ public class ShortLinksController {
 
         ShortLink newShortLink = new ShortLink();
         newShortLink.setDestination(request.getDestination());
-        newShortLink.setSlug(Base62.encode(lastIdInserted  + 1));
+        newShortLink.setSlug(Base62.encode(lastInsertedId  + 1));
 
         return shortLinkRepository.save(newShortLink);
     }
@@ -73,7 +77,7 @@ public class ShortLinksController {
      * @param slug Slug to be translated.
      * @return ShortLink which has the destination in JSON format.
      */
-    @RequestMapping(value = "/v1/{slug}", method = RequestMethod.GET)
+    @RequestMapping(value = "/v1/shortlinks/{slug}", method = RequestMethod.GET)
     public ShortLink getShortLinkDetails(@PathVariable String slug) {
         int destinationId = Base62.decode(slug);
 

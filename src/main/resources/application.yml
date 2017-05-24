@@ -4,9 +4,18 @@ server:
 spring:
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: create
   datasource:
     url: jdbc:mysql://localhost:3306/url_shortener_dev
     username:
     password:
     driver-class-name: com.mysql.jdbc.Driver
+
+logging:
+  level:
+    org.springframework.web: ERROR
+    mx.jovannypcg.urlshortener: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
