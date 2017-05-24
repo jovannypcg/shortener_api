@@ -72,7 +72,7 @@ public class ShortLinksController {
      * @param slug Slug to be translated.
      * @return ShortLink which has the destination in JSON format.
      */
-    @RequestMapping(value = "/{slug}", method = RequestMethod.GET)
+    @RequestMapping(value = "/v1/{slug}", method = RequestMethod.GET)
     public ShortLink getDestinationFrom(@PathVariable String slug) {
         int destinationId = Base62.decode(slug);
 
