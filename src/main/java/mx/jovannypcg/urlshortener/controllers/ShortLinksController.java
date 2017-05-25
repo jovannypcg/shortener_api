@@ -125,6 +125,8 @@ public class ShortLinksController {
             throw new DestinationNotFoundException(slug);
         }
 
+        updateVisitCounter(retrievedShortLink);
+
         logger.info("Redirecting to: " + retrievedShortLink.getDestination());
         logger.info("Finishing request GET /" + slug);
         return new RedirectView(retrievedShortLink.getDestination());
@@ -138,5 +140,16 @@ public class ShortLinksController {
     @ExceptionHandler(DestinationNotFoundException.class)
     void handleDestinationNotFoundException(HttpServletResponse response) throws IOException {
         response.sendError(HttpStatus.NOT_FOUND.value());
+    }
+
+    private ShortLink updateVisitCounter(ShortLink shortLink) {
+        int visitCounter = shortLink.getVisitCount() + 1;
+        shortLink.setVisitCount(visitCounter);
+
+        logger.info("Visit number: " + visitCounter);
+        shortLink.setVisitCount(visitCounter);
+        shortLinkRepository.save(shortLink);
+
+        return shortLink;
     }
 }

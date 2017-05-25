@@ -15,6 +15,7 @@ public class ShortLink {
     private Integer id;
     private String slug;
     private String destination;
+    private Integer visitCount = 0;
 
     public Integer getId() {
         return id;
@@ -38,5 +39,13 @@ public class ShortLink {
 
     public void setDestination(String destination) {
         this.destination = destination;
+    }
+
+    public Integer getVisitCount() {
+        return visitCount;
+    }
+
+    public void setVisitCount(Integer visitCount) {
+        this.visitCount = visitCount;
     }
 }
