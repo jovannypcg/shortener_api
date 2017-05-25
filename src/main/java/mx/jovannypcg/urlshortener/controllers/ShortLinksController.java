@@ -1,14 +1,13 @@
 package mx.jovannypcg.urlshortener.controllers;
 
-import javassist.tools.web.BadHttpRequest;
 import mx.jovannypcg.urlshortener.dao.ShortLinkRepository;
 import mx.jovannypcg.urlshortener.exceptions.BadRequestException;
-import mx.jovannypcg.urlshortener.exceptions.DestinationAlreadyExistsException;
 import mx.jovannypcg.urlshortener.exceptions.DestinationNotFoundException;
 import mx.jovannypcg.urlshortener.exceptions.SlugAlreadyExistsException;
 import mx.jovannypcg.urlshortener.model.ShortLink;
 import mx.jovannypcg.urlshortener.model.ShortLinkRequest;
 import mx.jovannypcg.urlshortener.util.Base62;
+import mx.jovannypcg.urlshortener.util.URL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -46,8 +45,13 @@ public class ShortLinksController {
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.POST)
     public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
         logger.info("Starting request POST /v1/shortlinks");
-
         logger.info("Request: " + request);
+
+        if (request.getDestination() == null || !URL.isValid(request.getDestination())) {
+            throw new BadRequestException("URL destination [" + request.getDestination() + "] is not valid");
+        }
+
+        logger.info("Finishing request POST /v1/shortlinks");
 
         if (request.getSlug() != null) {
             return handleCustomSlug(request);
@@ -160,7 +164,6 @@ public class ShortLinksController {
         newShortLink.setSlug(Base62.encode(toEncode));
 
         logger.info("ShortLink created: " + newShortLink.toString());
-        logger.info("Finishing request POST /v1/shortlinks");
 
         return shortLinkRepository.save(newShortLink);
     }
