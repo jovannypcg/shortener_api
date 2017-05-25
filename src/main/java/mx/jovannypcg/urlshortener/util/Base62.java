@@ -9,10 +9,7 @@ package mx.jovannypcg.urlshortener.util;
  */
 public class Base62 {
     /** Set of valid characters that allows to convert base10 to base62 and backwards. */
-    private static final String ALLOWED_ALPHABET =
-            "0123456789"+
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-            "abcdefghijklmnopqrstuvwxyz";
+    private static final String ALLOWED_ALPHABET = "BIldCikT3E0Mn9egaQobSxWjDfYX1HJzUuqptNPcy76wLRGA4FsvK2ZrVOm2h8";
 
     /** Size of <code>ALLOWS_ALPHABET</code> (62) */
     private static final int BASE = ALLOWED_ALPHABET.length();
