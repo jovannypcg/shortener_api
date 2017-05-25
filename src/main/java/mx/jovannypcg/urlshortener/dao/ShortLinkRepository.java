@@ -27,6 +27,14 @@ public interface ShortLinkRepository extends CrudRepository<ShortLink, Integer> 
     Optional<ShortLink> findByDestination(String destination);
 
     /**
+     * Retrieves a short link querying by its <code>slug</code>.
+     *
+     * @param slug Slug to look for.
+     * @return Optional object which might contain a short link if found.
+     */
+    Optional<ShortLink> findBySlug(String slug);
+
+    /**
      * Retrieves the short link with the latest inserted id.
      *
      * @return Short link with the latest inserted id.

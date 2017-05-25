@@ -1,8 +1,11 @@
 package mx.jovannypcg.urlshortener.controllers;
 
+import javassist.tools.web.BadHttpRequest;
 import mx.jovannypcg.urlshortener.dao.ShortLinkRepository;
+import mx.jovannypcg.urlshortener.exceptions.BadRequestException;
 import mx.jovannypcg.urlshortener.exceptions.DestinationAlreadyExistsException;
 import mx.jovannypcg.urlshortener.exceptions.DestinationNotFoundException;
+import mx.jovannypcg.urlshortener.exceptions.SlugAlreadyExistsException;
 import mx.jovannypcg.urlshortener.model.ShortLink;
 import mx.jovannypcg.urlshortener.model.ShortLinkRequest;
 import mx.jovannypcg.urlshortener.util.Base62;
@@ -44,28 +47,13 @@ public class ShortLinksController {
     public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
         logger.info("Starting request POST /v1/shortlinks");
 
-        int lastInsertedId = 0;
+        logger.info("Request: " + request);
 
-        if (shortLinkRepository.findFirstByOrderByIdDesc() != null) {
-             lastInsertedId = shortLinkRepository.findFirstByOrderByIdDesc().getId();
+        if (request.getSlug() != null) {
+            return handleCustomSlug(request);
+        } else {
+            return handleNewSlug(request);
         }
-
-        Optional<ShortLink> existingShortLink = shortLinkRepository.findByDestination(request.getDestination());
-
-        if (existingShortLink.isPresent()) {
-            logger.info("Existing short link retrieved: " + existingShortLink.get().toString());
-            logger.info("Finishing request POST /v1/shortlinks");
-            return existingShortLink.get();
-        }
-
-        ShortLink newShortLink = new ShortLink();
-        newShortLink.setDestination(request.getDestination());
-        newShortLink.setSlug(Base62.encode(lastInsertedId  + 1));
-
-        logger.info("ShortLink created: " + newShortLink.toString());
-        logger.info("Finishing request POST /v1/shortlinks");
-
-        return shortLinkRepository.save(newShortLink);
     }
 
     /**
@@ -119,27 +107,32 @@ public class ShortLinksController {
 
         int destinationId = Base62.decode(slug);
 
-        ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
+        Optional<ShortLink> retrievedShortLink = shortLinkRepository.findBySlug(slug);
 
-        if (retrievedShortLink == null) {
+        if (!retrievedShortLink.isPresent()) {
             throw new DestinationNotFoundException(slug);
         }
 
-        updateVisitCounter(retrievedShortLink);
+        updateVisitCounter(retrievedShortLink.get());
 
-        logger.info("Redirecting to: " + retrievedShortLink.getDestination());
+        logger.info("Redirecting to: " + retrievedShortLink.get().getDestination());
         logger.info("Finishing request GET /" + slug);
-        return new RedirectView(retrievedShortLink.getDestination());
+        return new RedirectView(retrievedShortLink.get().getDestination());
     }
 
-    @ExceptionHandler(DestinationAlreadyExistsException.class)
-    void handleDestinationAlreadyExistsException(HttpServletResponse response) throws IOException {
+    @ExceptionHandler(SlugAlreadyExistsException.class)
+    void handleSlugAlreadyExistsException(HttpServletResponse response) throws IOException {
         response.sendError(HttpStatus.CONFLICT.value());
     }
 
     @ExceptionHandler(DestinationNotFoundException.class)
     void handleDestinationNotFoundException(HttpServletResponse response) throws IOException {
         response.sendError(HttpStatus.NOT_FOUND.value());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    void BadRequestException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.BAD_REQUEST.value());
     }
 
     private ShortLink updateVisitCounter(ShortLink shortLink) {
@@ -151,5 +144,49 @@ public class ShortLinksController {
         shortLinkRepository.save(shortLink);
 
         return shortLink;
+    }
+
+    private ShortLink handleNewSlug(ShortLinkRequest request) {
+        int lastInsertedId = 0;
+
+        if (shortLinkRepository.findFirstByOrderByIdDesc() != null) {
+            lastInsertedId = shortLinkRepository.findFirstByOrderByIdDesc().getId();
+        }
+
+        int toEncode = lastInsertedId + 1;
+
+        ShortLink newShortLink = new ShortLink();
+        newShortLink.setDestination(request.getDestination());
+        newShortLink.setSlug(Base62.encode(toEncode));
+
+        logger.info("ShortLink created: " + newShortLink.toString());
+        logger.info("Finishing request POST /v1/shortlinks");
+
+        return shortLinkRepository.save(newShortLink);
+    }
+
+    private ShortLink handleCustomSlug(ShortLinkRequest request) {
+        Optional<ShortLink> existingSlug = shortLinkRepository.findBySlug(request.getSlug());
+
+        if (!Base62.containsValidCharacters(request.getSlug())) {
+            throw new BadRequestException("Slug [" + request.getSlug() + "] contains invalid characters");
+        }
+
+        logger.info("Decoded slug: " + Base62.decode(request.getSlug()));
+
+        ShortLink newShortLink = new ShortLink();
+        newShortLink.setDestination(request.getDestination());
+        newShortLink.setSlug(request.getSlug());
+
+        if (existingSlug.isPresent() && !existingSlug.get().getDestination().equals(request.getDestination())) {
+            throw new SlugAlreadyExistsException(request.getSlug());
+        }
+
+        if (existingSlug.isPresent()) {
+            newShortLink.setSlug(existingSlug.get().getSlug());
+            return existingSlug.get();
+        }
+
+        return shortLinkRepository.save(newShortLink);
     }
 }
