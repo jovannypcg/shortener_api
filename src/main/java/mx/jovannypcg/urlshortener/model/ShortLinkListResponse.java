@@ -2,16 +2,19 @@ package mx.jovannypcg.urlshortener.model;
 
 import org.springframework.http.HttpStatus;
 
-public class ShortLinkResponse {
+import java.util.List;
+
+public class ShortLinkListResponse {
     private String error;
-    private ShortLink data;
+    private List<ShortLink> data;
     private Integer status;
 
-    public ShortLinkResponse() {}
-    public ShortLinkResponse(ShortLink data) {
+    public ShortLinkListResponse() {}
+    public ShortLinkListResponse(List<ShortLink> data) {
         this.data = data;
         this.status = HttpStatus.OK.value();
     }
+
 
     public Integer getStatus() {
         return status;
@@ -21,11 +24,11 @@ public class ShortLinkResponse {
         this.status = status;
     }
 
-    public ShortLink getData() {
+    public List<ShortLink> getData() {
         return data;
     }
 
-    public void setData(ShortLink data) {
+    public void setData(List<ShortLink> data) {
         this.data = data;
     }
 
@@ -36,5 +39,4 @@ public class ShortLinkResponse {
     public void setError(String error) {
         this.error = error;
     }
-
 }

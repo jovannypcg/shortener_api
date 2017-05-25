@@ -3,9 +3,12 @@ package mx.jovannypcg.urlshortener.controllers;
 import mx.jovannypcg.urlshortener.dao.ShortLinkRepository;
 import mx.jovannypcg.urlshortener.exceptions.BadRequestException;
 import mx.jovannypcg.urlshortener.exceptions.DestinationNotFoundException;
+import mx.jovannypcg.urlshortener.exceptions.ResourceNotFoundException;
 import mx.jovannypcg.urlshortener.exceptions.SlugAlreadyExistsException;
 import mx.jovannypcg.urlshortener.model.ShortLink;
+import mx.jovannypcg.urlshortener.model.ShortLinkListResponse;
 import mx.jovannypcg.urlshortener.model.ShortLinkRequest;
+import mx.jovannypcg.urlshortener.model.ShortLinkResponse;
 import mx.jovannypcg.urlshortener.util.Base62;
 import mx.jovannypcg.urlshortener.util.URL;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +47,7 @@ public class ShortLinksController {
      * @return The created ShortLink in JSON format.
      */
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.POST)
-    public ShortLink createShortLink(@RequestBody ShortLinkRequest request) {
+    public ShortLinkResponse createShortLink(@RequestBody ShortLinkRequest request) {
         logger.info("Starting request POST /v1/shortlinks");
         logger.info("Request: " + request);
 
@@ -54,11 +57,15 @@ public class ShortLinksController {
 
         logger.info("Finishing request POST /v1/shortlinks");
 
+        ShortLink responseData;
+
         if (request.getSlug() != null) {
-            return handleCustomSlug(request);
+            responseData = handleCustomSlug(request);
         } else {
-            return handleNewSlug(request);
+            responseData = handleNewSlug(request);
         }
+
+        return new ShortLinkResponse(responseData);
     }
 
     /**
@@ -67,14 +74,14 @@ public class ShortLinksController {
      * @return List of records found in database.
      */
     @RequestMapping(value = "/v1/shortlinks", method = RequestMethod.GET)
-    public List<ShortLink> getShortLinks() {
+    public ShortLinkListResponse getShortLinks() {
         logger.info("Starting request GET /v1/shortlinks");
         List<ShortLink> links = new ArrayList<>();
 
         shortLinkRepository.findAll().forEach(links::add);
 
         logger.info("Finishing request GET /v1/shortlinks");
-        return links;
+        return new ShortLinkListResponse(links);
     }
 
     /**
@@ -84,20 +91,19 @@ public class ShortLinksController {
      * @return ShortLink which has the destination in JSON format.
      */
     @RequestMapping(value = "/v1/shortlinks/{slug}", method = RequestMethod.GET)
-    public ShortLink getShortLinkDetails(@PathVariable String slug) {
+    public ShortLinkResponse getShortLinkDetails(@PathVariable String slug) {
         logger.info("Starting request GET /v1/shortlinks/" + slug);
 
-        int destinationId = Base62.decode(slug);
+        Optional<ShortLink> retrievedShortLink = shortLinkRepository.findBySlug(slug);
 
-        ShortLink retrievedShortLink = shortLinkRepository.findOne(destinationId);
-
-        if (retrievedShortLink == null) {
-            throw new DestinationNotFoundException(slug);
+        if (!retrievedShortLink.isPresent()) {
+            throw new ResourceNotFoundException("Slug [" + slug + "] not found");
         }
 
         logger.info("Short link retrieved: " + retrievedShortLink.toString());
         logger.info("Finishing request GET /v1/shortlinks/" + slug);
-        return retrievedShortLink;
+
+        return new ShortLinkResponse(retrievedShortLink.get());
     }
 
     /**
@@ -109,8 +115,6 @@ public class ShortLinksController {
     @RequestMapping(value = "/{slug}", method = RequestMethod.GET)
     public RedirectView redirectFrom(@PathVariable String slug) {
         logger.info("Starting request GET /" + slug);
-
-        int destinationId = Base62.decode(slug);
 
         Optional<ShortLink> retrievedShortLink = shortLinkRepository.findBySlug(slug);
 
@@ -126,19 +130,34 @@ public class ShortLinksController {
         return new RedirectView(retrievedShortLink.get().getDestination());
     }
 
+    @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(SlugAlreadyExistsException.class)
-    void handleSlugAlreadyExistsException(HttpServletResponse response) throws IOException {
-        response.sendError(HttpStatus.CONFLICT.value());
+    ShortLinkResponse handleSlugAlreadyExistsException() throws IOException {
+        ShortLinkResponse response = new ShortLinkResponse();
+        response.setError("Slug already in use");
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+
+        return response;
     }
 
-    @ExceptionHandler(DestinationNotFoundException.class)
-    void handleDestinationNotFoundException(HttpServletResponse response) throws IOException {
-        response.sendError(HttpStatus.NOT_FOUND.value());
-    }
-
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(BadRequestException.class)
-    void BadRequestException(HttpServletResponse response) throws IOException {
-        response.sendError(HttpStatus.BAD_REQUEST.value());
+    ShortLinkResponse BadRequestException() throws IOException {
+        ShortLinkResponse response = new ShortLinkResponse();
+        response.setError("Bad request");
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+
+        return response;
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ResourceNotFoundException.class)
+    ShortLinkResponse handleResourceNotFoundException() throws IOException {
+        ShortLinkResponse response = new ShortLinkResponse();
+        response.setError("Slug not found");
+        response.setStatus(HttpStatus.NOT_FOUND.value());
+
+        return response;
     }
 
     private ShortLink updateVisitCounter(ShortLink shortLink) {
