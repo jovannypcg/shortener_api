@@ -11,6 +11,7 @@ import mx.jovannypcg.urlshortener.util.URL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 
 import javax.servlet.http.HttpServletResponse;
@@ -114,7 +115,8 @@ public class ShortLinksController {
         Optional<ShortLink> retrievedShortLink = shortLinkRepository.findBySlug(slug);
 
         if (!retrievedShortLink.isPresent()) {
-            throw new DestinationNotFoundException(slug);
+            return new RedirectView("https://cdn-images-1.medium.com/max/800/1*qdFdhbR00beEaIKDI_WDCw.gif");
+            // throw new DestinationNotFoundException(slug);
         }
 
         updateVisitCounter(retrievedShortLink.get());
